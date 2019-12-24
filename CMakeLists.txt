@@ -7,6 +7,7 @@ set(CMAKE_AUTORCC ON)
 set(base_directory ${CMAKE_CURRENT_SOURCE_DIR})
 set(sources_directory ${base_directory}/src)
 set(include_directory ${base_directory}/include)
+set(proto_directory ${base_directory}/proto)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${base_directory}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${base_directory}/lib)
@@ -44,7 +45,9 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}
 
 #link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
-file(GLOB_RECURSE source_files ${sources_directory}/*.cpp ${include_directory}/*.hpp)
+file(GLOB_RECURSE proto_files ${proto_directory}/*.proto)
+protobuf_generate_cpp(proto_sources proto_headers ${proto_files})
+file(GLOB_RECURSE source_files ${sources_directory}/*.cpp ${include_directory}/*.hpp ${proto_headers} ${proto_sources})
 
 add_executable(aawireless ${source_files})
 
