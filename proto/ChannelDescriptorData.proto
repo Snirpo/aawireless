@@ -30,7 +30,7 @@ import "VendorExtensionChannelData.proto";
 import "MediaChannelData.proto";
 import "WifiChannelData.proto";
 
-package f1x.aasdk.proto.data;
+package aawireless.proto.data;
 
 message ChannelDescriptor
 {

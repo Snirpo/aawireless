@@ -18,7 +18,7 @@
 
 syntax="proto2";
 
-package f1x.aasdk.proto.ids;
+package aawireless.proto.ids;
 
 message AVChannelMessage
 {

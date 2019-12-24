@@ -18,7 +18,7 @@
 
 syntax="proto2";
 
-package f1x.aasdk.proto.enums;
+package aawireless.proto.enums;
 
 message VideoResolution
 {

@@ -22,7 +22,7 @@ option optimize_for=SPEED;
 
 
 
-package f1x.aasdk.proto.data;
+package aawireless.proto.data;
 
 message WifiChannel
 {

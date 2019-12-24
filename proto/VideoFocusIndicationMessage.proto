@@ -20,7 +20,7 @@ syntax="proto2";
 
 import "VideoFocusModeEnum.proto";
 
-package f1x.aasdk.proto.messages;
+package aawireless.proto.messages;
 
 message VideoFocusIndication
 {

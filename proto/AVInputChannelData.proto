@@ -21,7 +21,7 @@ syntax="proto2";
 import "AVStreamTypeEnum.proto";
 import "AudioConfigData.proto";
 
-package f1x.aasdk.proto.data;
+package aawireless.proto.data;
 
 message AVInputChannel
 {

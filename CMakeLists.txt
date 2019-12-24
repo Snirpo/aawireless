@@ -6,7 +6,6 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 set(base_directory ${CMAKE_CURRENT_SOURCE_DIR})
 set(sources_directory ${base_directory}/src)
-set(include_directory ${base_directory}/include)
 set(proto_directory ${base_directory}/proto)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${base_directory}/lib)
@@ -28,6 +27,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_INIT} -Wall -pedantic -fPIC")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 set(CMAKE_CXX_FLAGS_RELEASE "-g -O3")
 
+include(FindProtobuf)
+
 find_package(Boost REQUIRED COMPONENTS system log OPTIONAL_COMPONENTS unit_test_framework)
 find_package(libusb-1.0 REQUIRED)
 find_package(Qt5 COMPONENTS Bluetooth Network)
@@ -41,15 +42,16 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}
         ${LIBUSB_1_INCLUDE_DIRS}
         ${PROTOBUF_INCLUDE_DIR}
         ${OPENSSL_INCLUDE_DIR}
-        ${include_directory})
+        ${sources_directory}
+        ${proto_headers})
 
 #link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
 file(GLOB_RECURSE proto_files ${proto_directory}/*.proto)
 protobuf_generate_cpp(proto_sources proto_headers ${proto_files})
-file(GLOB_RECURSE source_files ${sources_directory}/*.cpp ${include_directory}/*.hpp ${proto_headers} ${proto_sources})
+file(GLOB_RECURSE source_files ${sources_directory}/*.h ${sources_directory}/*.cpp)
 
-add_executable(aawireless ${source_files})
+add_executable(aawireless ${proto_headers} ${proto_sources} ${source_files})
 
 target_link_libraries(aawireless
         ${Boost_LIBRARIES}
