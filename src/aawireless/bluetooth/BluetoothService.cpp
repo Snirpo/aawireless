@@ -45,7 +45,7 @@ namespace aawireless {
 //                    connect(socket, &QBluetoothSocket::disconnected, this,
 //                            QOverload<>::of(&ChatServer::clientDisconnected));
 
-                aawireless::proto::messages::WifiInfoRequest request;
+                f1x::aasdk::proto::messages::WifiInfoRequest request;
                 request.set_ip_address("192.168.1.123");
                 request.set_port(5000);
 
@@ -105,26 +105,26 @@ namespace aawireless {
         }
 
         void BluetoothService::handleWifiInfoRequest(QByteArray &buffer, uint16_t length) {
-            aawireless::proto::messages::WifiInfoRequest msg;
+            f1x::aasdk::proto::messages::WifiInfoRequest msg;
             msg.ParseFromArray(buffer.data() + 4, length);
             AW_LOG(info) << "WifiInfoRequest: " << msg.DebugString();
 
-            aawireless::proto::messages::WifiInfoResponse response;
+            f1x::aasdk::proto::messages::WifiInfoResponse response;
             response.set_ip_address("192.168.1.123");
             response.set_port(5000);
-            response.set_status(aawireless::proto::messages::WifiInfoResponse_Status_STATUS_SUCCESS);
+            response.set_status(f1x::aasdk::proto::messages::WifiInfoResponse_Status_STATUS_SUCCESS);
 
             sendMessage(response, 7);
         }
 
         void BluetoothService::handleWifiSecurityRequest(QByteArray &buffer, uint16_t length) {
-            aawireless::proto::messages::WifiSecurityReponse response;
+            f1x::aasdk::proto::messages::WifiSecurityReponse response;
 
             response.set_ssid("xxx");
             response.set_bssid("xxx");
             response.set_key("xxx");
-            response.set_security_mode(aawireless::proto::messages::WifiSecurityReponse_SecurityMode_WPA2_PERSONAL);
-            response.set_access_point_type(aawireless::proto::messages::WifiSecurityReponse_AccessPointType_STATIC);
+            response.set_security_mode(f1x::aasdk::proto::messages::WifiSecurityReponse_SecurityMode_WPA2_PERSONAL);
+            response.set_access_point_type(f1x::aasdk::proto::messages::WifiSecurityReponse_AccessPointType_STATIC);
 
             sendMessage(response, 3);
         }
@@ -153,7 +153,7 @@ namespace aawireless {
         }
 
         void BluetoothService::handleWifiInfoRequestResponse(QByteArray &buffer, uint16_t length) {
-            aawireless::proto::messages::WifiInfoResponse msg;
+            f1x::aasdk::proto::messages::WifiInfoResponse msg;
             msg.ParseFromArray(buffer.data() + 4, length);
             AW_LOG(info) << "WifiInfoResponse: " << msg.DebugString();
         }

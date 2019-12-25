@@ -10,5 +10,7 @@ int main(int argc, char *argv[]) {
 
     qApplication.exec();
 
+    bluetoothService->stop();
+
     return 0;
 }

@@ -27,7 +27,12 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_INIT} -Wall -pedantic -fPIC")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 set(CMAKE_CXX_FLAGS_RELEASE "-g -O3")
 
-include(FindProtobuf)
+### TODO: Should not be done this way? ###
+set(AASDK_LIBRARIES /usr/local/lib/libaasdk.so)
+set(AASDK_INCLUDE_DIRS /usr/local/include/aasdk)
+set(AASDK_PROTO_LIBRARIES /usr/local/lib/libaasdk_proto.so)
+set(AASDK_PROTO_INCLUDE_DIRS /usr/local/include/aasdk_proto)
+###
 
 find_package(Boost REQUIRED COMPONENTS system log OPTIONAL_COMPONENTS unit_test_framework)
 find_package(libusb-1.0 REQUIRED)
@@ -42,13 +47,10 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}
         ${LIBUSB_1_INCLUDE_DIRS}
         ${PROTOBUF_INCLUDE_DIR}
         ${OPENSSL_INCLUDE_DIR}
-        ${sources_directory}
-        ${proto_headers})
+        ${AASDK_PROTO_INCLUDE_DIRS}
+        ${AASDK_INCLUDE_DIRS}
+        ${sources_directory})
 
-#link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
-
-file(GLOB_RECURSE proto_files ${proto_directory}/*.proto)
-protobuf_generate_cpp(proto_sources proto_headers ${proto_files})
 file(GLOB_RECURSE source_files ${sources_directory}/*.h ${sources_directory}/*.cpp)
 
 add_executable(aawireless ${proto_headers} ${proto_sources} ${source_files})
@@ -58,4 +60,6 @@ target_link_libraries(aawireless
         ${Qt5Bluetooth_LIBRARIES}
         ${Qt5Network_LIBRARIES}
         ${LIBUSB_1_LIBRARIES}
-        ${PROTOBUF_LIBRARIES})
+        ${PROTOBUF_LIBRARIES}
+        ${AASDK_PROTO_LIBRARIES}
+        ${AASDK_LIBRARIES})
