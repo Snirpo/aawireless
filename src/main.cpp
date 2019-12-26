@@ -10,16 +10,15 @@
 #include <f1x/aasdk/USB/AccessoryModeQueryFactory.hpp>
 #include <f1x/aasdk/USB/AccessoryModeQueryChainFactory.hpp>
 #include <f1x/aasdk/USB/ConnectedAccessoriesEnumerator.hpp>
+#include <aawireless/App.h>
 
 using ThreadPool = std::vector<std::thread>;
 
-void startUSBWorkers(boost::asio::io_service& ioService, libusb_context* usbContext, ThreadPool& threadPool)
-{
+void startUSBWorkers(boost::asio::io_service &ioService, libusb_context *usbContext, ThreadPool &threadPool) {
     auto usbWorker = [&ioService, usbContext]() {
         timeval libusbEventTimeout{180, 0};
 
-        while(!ioService.stopped())
-        {
+        while (!ioService.stopped()) {
             libusb_handle_events_timeout_completed(usbContext, &libusbEventTimeout, nullptr);
         }
     };
@@ -30,8 +29,7 @@ void startUSBWorkers(boost::asio::io_service& ioService, libusb_context* usbCont
     threadPool.emplace_back(usbWorker);
 }
 
-void startIOServiceWorkers(boost::asio::io_service& ioService, ThreadPool& threadPool)
-{
+void startIOServiceWorkers(boost::asio::io_service &ioService, ThreadPool &threadPool) {
     auto ioServiceWorker = [&ioService]() {
         ioService.run();
     };
@@ -43,9 +41,8 @@ void startIOServiceWorkers(boost::asio::io_service& ioService, ThreadPool& threa
 }
 
 int main(int argc, char *argv[]) {
-    libusb_context* usbContext;
-    if(libusb_init(&usbContext) != 0)
-    {
+    libusb_context *usbContext;
+    if (libusb_init(&usbContext) != 0) {
         AW_LOG(error) << "[OpenAuto] libusb init failed.";
         return 1;
     }
@@ -65,9 +62,12 @@ int main(int argc, char *argv[]) {
     //autoapp::service::ServiceFactory serviceFactory(ioService, configuration);
     //autoapp::service::AndroidAutoEntityFactory androidAutoEntityFactory(ioService, configuration, serviceFactory);
 
-    auto usbHub(std::make_shared<f1x::aasdk::usb::USBHub>(usbWrapper, ioService, queryChainFactory));
-    auto connectedAccessoriesEnumerator(std::make_shared<f1x::aasdk::usb::ConnectedAccessoriesEnumerator>(usbWrapper, ioService, queryChainFactory));
-    //auto app = std::make_shared<autoapp::App>(ioService, usbWrapper, tcpWrapper, androidAutoEntityFactory, std::move(usbHub), std::move(connectedAccessoriesEnumerator));
+    auto usbHub = std::make_shared<f1x::aasdk::usb::USBHub>(usbWrapper, ioService, queryChainFactory);
+    auto connectedAccessoriesEnumerator = std::make_shared<f1x::aasdk::usb::ConnectedAccessoriesEnumerator>(usbWrapper,
+                                                                                                            ioService,
+                                                                                                            queryChainFactory);
+    auto app = std::make_shared<aawireless::App>(ioService, std::move(usbHub));
+    app->start();
 
     auto bluetoothService = std::make_shared<aawireless::bluetooth::BluetoothService>();
     bluetoothService->start();
