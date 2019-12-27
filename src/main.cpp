@@ -11,6 +11,7 @@
 #include <f1x/aasdk/USB/AccessoryModeQueryChainFactory.hpp>
 #include <f1x/aasdk/USB/ConnectedAccessoriesEnumerator.hpp>
 #include <aawireless/App.h>
+#include <aawireless/connection/ConnectionFactory.h>
 
 using ThreadPool = std::vector<std::thread>;
 
@@ -59,24 +60,22 @@ int main(int argc, char *argv[]) {
     f1x::aasdk::usb::USBWrapper usbWrapper(usbContext);
     f1x::aasdk::usb::AccessoryModeQueryFactory queryFactory(usbWrapper, ioService);
     f1x::aasdk::usb::AccessoryModeQueryChainFactory queryChainFactory(usbWrapper, ioService, queryFactory);
-    //autoapp::service::ServiceFactory serviceFactory(ioService, configuration);
-    //autoapp::service::AndroidAutoEntityFactory androidAutoEntityFactory(ioService, configuration, serviceFactory);
+    boost::asio::ip::tcp::acceptor acceptor(ioService,
+                                            boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 5000));
+    aawireless::bluetooth::BluetoothService bluetoothService;
+    f1x::aasdk::usb::USBHub usbHub(usbWrapper, ioService, queryChainFactory);
+    aawireless::connection::ConnectionFactory connectionFactory(ioService, tcpWrapper, usbWrapper);
 
-    auto usbHub = std::make_shared<f1x::aasdk::usb::USBHub>(usbWrapper, ioService, queryChainFactory);
-    auto connectedAccessoriesEnumerator = std::make_shared<f1x::aasdk::usb::ConnectedAccessoriesEnumerator>(usbWrapper,
-                                                                                                            ioService,
-                                                                                                            queryChainFactory);
-    auto app = std::make_shared<aawireless::App>(ioService, std::move(usbHub));
+    auto app = std::make_shared<aawireless::App>(ioService,
+                                                 usbHub,
+                                                 acceptor,
+                                                 bluetoothService,
+                                                 connectionFactory);
     app->start();
-
-    auto bluetoothService = std::make_shared<aawireless::bluetooth::BluetoothService>();
-    bluetoothService->start();
 
     auto result = qApplication.exec();
 
     std::for_each(threadPool.begin(), threadPool.end(), std::bind(&std::thread::join, std::placeholders::_1));
-
-    bluetoothService->stop();
 
     libusb_exit(usbContext);
 
