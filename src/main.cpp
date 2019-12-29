@@ -3,6 +3,7 @@
 #include <libusb.h>
 #include "aawireless/bluetooth/BluetoothService.h"
 #include <boost/asio/io_service.hpp>
+#include <boost/property_tree/ini_parser.hpp>
 #include <aawireless/log/Log.h>
 #include <f1x/aasdk/TCP/TCPWrapper.hpp>
 #include <f1x/aasdk/USB/USBWrapper.hpp>
@@ -12,6 +13,7 @@
 #include <f1x/aasdk/USB/ConnectedAccessoriesEnumerator.hpp>
 #include <aawireless/App.h>
 #include <aawireless/connection/ConnectionFactory.h>
+#include <aawireless/configuration/Configuration.h>
 
 using ThreadPool = std::vector<std::thread>;
 
@@ -56,6 +58,8 @@ int main(int argc, char *argv[]) {
 
     QCoreApplication qApplication(argc, argv);
 
+    std::string configFile("config.ini");
+    aawireless::configuration::Configuration configuration(configFile);
     f1x::aasdk::tcp::TCPWrapper tcpWrapper;
     f1x::aasdk::usb::USBWrapper usbWrapper(usbContext);
     f1x::aasdk::usb::AccessoryModeQueryFactory queryFactory(usbWrapper, ioService);
@@ -70,7 +74,8 @@ int main(int argc, char *argv[]) {
                                                  usbHub,
                                                  acceptor,
                                                  bluetoothService,
-                                                 connectionFactory);
+                                                 connectionFactory,
+                                                 configuration);
     app->start();
 
     auto result = qApplication.exec();

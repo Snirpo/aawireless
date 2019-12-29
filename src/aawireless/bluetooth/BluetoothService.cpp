@@ -187,5 +187,9 @@ namespace aawireless {
 
             serviceInfo.registerService(localDevice.address());
         }
+
+        std::string BluetoothService::getAddress() {
+            return localDevice.address().toString().toStdString();
+        }
     }
 }

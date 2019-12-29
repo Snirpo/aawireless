@@ -18,6 +18,7 @@ namespace aawireless {
             BluetoothService();
             void start();
             void stop();
+            std::string getAddress();
 
         private slots:
             void onClientConnected();

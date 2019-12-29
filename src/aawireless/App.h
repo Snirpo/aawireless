@@ -11,15 +11,15 @@
 #include <f1x/aasdk/USB/IConnectedAccessoriesEnumerator.hpp>
 #include <aawireless/bluetooth/BluetoothService.h>
 #include <aawireless/connection/ConnectionFactory.h>
+#include <aawireless/configuration/Configuration.h>
 
 namespace aawireless {
     class App : public std::enable_shared_from_this<App> {
     public:
-        App(boost::asio::io_service &ioService,
-            f1x::aasdk::usb::IUSBHub::Pointer usbHub,
-            boost::asio::ip::tcp::acceptor &acceptor,
-            aawireless::bluetooth::BluetoothService &bluetoothService,
-            aawireless::connection::ConnectionFactory &connectionFactory);
+        App(boost::asio::io_service &ioService, f1x::aasdk::usb::IUSBHub::Pointer usbHub,
+            boost::asio::ip::tcp::acceptor &acceptor, bluetooth::BluetoothService &bluetoothService,
+            connection::ConnectionFactory &connectionFactory,
+            configuration::Configuration &configuration);
 
         void start();
 
@@ -32,6 +32,7 @@ namespace aawireless {
         boost::asio::ip::tcp::acceptor &acceptor;
         aawireless::bluetooth::BluetoothService &bluetoothService;
         aawireless::connection::ConnectionFactory &connectionFactory;
+        configuration::Configuration &configuration;
 
         std::shared_ptr<aawireless::connection::Connection> usbConnection;
         std::shared_ptr<aawireless::connection::Connection> socketConnection;
