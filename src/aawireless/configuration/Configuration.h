@@ -9,9 +9,13 @@ namespace aawireless {
     namespace configuration {
         class Configuration {
         public:
-            Configuration(std::string &file);
+            Configuration(const std::string &file);
 
-            std::string ipAddress;
+            std::string wifiIpAddress;
+            uint16_t wifiPort;
+            std::string wifiBSSID;
+            std::string wifiSSID;
+            std::string wifiPassphrase;
         };
     }
 }

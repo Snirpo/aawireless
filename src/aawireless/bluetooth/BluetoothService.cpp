@@ -13,9 +13,9 @@
 
 namespace aawireless {
     namespace bluetooth {
-        BluetoothService::BluetoothService():
-            server(QBluetoothServiceInfo::RfcommProtocol)
-        {
+        BluetoothService::BluetoothService(aawireless::configuration::Configuration &configuration) :
+                server(QBluetoothServiceInfo::RfcommProtocol),
+                configuration(configuration) {
             connect(&server, &QBluetoothServer::newConnection, this,
                     &BluetoothService::onClientConnected);
         }
@@ -39,7 +39,7 @@ namespace aawireless {
 
             if (socket != nullptr) {
                 AW_LOG(info) << "[AndroidBluetoothServer] rfcomm client connected, peer name: "
-                                   << socket->peerName().toStdString();
+                             << socket->peerName().toStdString();
 
                 connect(socket, &QBluetoothSocket::readyRead, this, &BluetoothService::readSocket);
 //                    connect(socket, &QBluetoothSocket::disconnected, this,
@@ -110,8 +110,8 @@ namespace aawireless {
             AW_LOG(info) << "WifiInfoRequest: " << msg.DebugString();
 
             f1x::aasdk::proto::messages::WifiInfoResponse response;
-            response.set_ip_address("192.168.1.123");
-            response.set_port(5000);
+            response.set_ip_address(configuration.wifiIpAddress);
+            response.set_port(configuration.wifiPort);
             response.set_status(f1x::aasdk::proto::messages::WifiInfoResponse_Status_STATUS_SUCCESS);
 
             sendMessage(response, 7);
@@ -120,16 +120,17 @@ namespace aawireless {
         void BluetoothService::handleWifiSecurityRequest(QByteArray &buffer, uint16_t length) {
             f1x::aasdk::proto::messages::WifiSecurityReponse response;
 
-            response.set_ssid("xxx");
-            response.set_bssid("xxx");
-            response.set_key("xxx");
-            response.set_security_mode(f1x::aasdk::proto::messages::WifiSecurityReponse_SecurityMode_WPA2_PERSONAL);
+            response.set_ssid(configuration.wifiSSID);
+            response.set_bssid(configuration.wifiBSSID);
+            response.set_key(configuration.wifiPassphrase);
+            response.set_security_mode(
+                    f1x::aasdk::proto::messages::WifiSecurityReponse_SecurityMode_WPA2_PERSONAL); //TODO: make configurable?
             response.set_access_point_type(f1x::aasdk::proto::messages::WifiSecurityReponse_AccessPointType_STATIC);
 
             sendMessage(response, 3);
         }
 
-        void BluetoothService::sendMessage(google::protobuf::Message& message, uint16_t type) {
+        void BluetoothService::sendMessage(google::protobuf::Message &message, uint16_t type) {
             int byteSize = message.ByteSize();
             QByteArray out(byteSize + 4, 0);
             QDataStream ds(&out, QIODevice::ReadWrite);
@@ -167,7 +168,8 @@ namespace aawireless {
             classId.prepend(QVariant::fromValue(serviceUuid));
             serviceInfo.setAttribute(QBluetoothServiceInfo::ServiceClassIds, classId);
             serviceInfo.setAttribute(QBluetoothServiceInfo::ServiceName, "AAWireless Bluetooth Service");
-            serviceInfo.setAttribute(QBluetoothServiceInfo::ServiceDescription, "AndroidAuto WiFi projection automatic setup");
+            serviceInfo.setAttribute(QBluetoothServiceInfo::ServiceDescription,
+                                     "AndroidAuto WiFi projection automatic setup");
             serviceInfo.setAttribute(QBluetoothServiceInfo::ServiceProvider, "AAWireless");
             serviceInfo.setServiceUuid(serviceUuid);
 

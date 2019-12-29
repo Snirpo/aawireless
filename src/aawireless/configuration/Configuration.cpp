@@ -8,11 +8,15 @@
 
 namespace aawireless {
     namespace configuration {
-        Configuration::Configuration(std::string &file) {
+        Configuration::Configuration(const std::string &file) {
             boost::property_tree::ptree iniConfig;
             boost::property_tree::ini_parser::read_ini(file, iniConfig);
 
-            ipAddress = iniConfig.get<std::string>("WIFI.IpAddress", "127.0.0.1");
+            wifiIpAddress = iniConfig.get<std::string>("Wifi.IpAddress");
+            wifiPort = iniConfig.get<std::uint16_t>("Wifi.Port");
+            wifiBSSID = iniConfig.get<std::string>("Wifi.BSSID");
+            wifiSSID = iniConfig.get<std::string>("Wifi.SSID");
+            wifiPassphrase = iniConfig.get<std::string>("Wifi.Passphrase");
         }
     }
 }
