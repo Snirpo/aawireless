@@ -10,53 +10,40 @@
 
 namespace aawireless {
     App::App(boost::asio::io_service &ioService,
-             f1x::aasdk::usb::IUSBHub &usbHub,
+             f1x::aasdk::usb::IUSBHub::Pointer usbHub,
              boost::asio::ip::tcp::acceptor &acceptor,
              aawireless::bluetooth::BluetoothService &bluetoothService,
              aawireless::connection::ConnectionFactory &connectionFactory)
             : ioService(ioService),
               strand(ioService),
-              usbHub(usbHub),
+              usbHub(std::move(usbHub)),
               acceptor(acceptor),
               bluetoothService(bluetoothService),
               connectionFactory(connectionFactory) {
     }
 
     void App::start() {
+        bluetoothService.start();
         strand.dispatch([this, self = this->shared_from_this()]() {
-            AW_LOG(info) << "[App] Starting";
+            AW_LOG(info) << "Starting";
 
             auto promise = f1x::aasdk::usb::IUSBHub::Promise::defer(strand);
-            promise->then([this, self = this->shared_from_this()](f1x::aasdk::usb::DeviceHandle deviceHandle) {
-                              usbConnection = connectionFactory.create(deviceHandle);
-                          },
-                          [this, self = this->shared_from_this()](const f1x::aasdk::error::Error &error) {
-                              AW_LOG(error) << "[App] usb hub error: " << error.what();
-
-                              if (error != f1x::aasdk::error::ErrorCode::OPERATION_ABORTED &&
-                                  error != f1x::aasdk::error::ErrorCode::OPERATION_IN_PROGRESS) {
-                                  try {
-                                      // this->waitForDevice();
-                                  } catch (...) {
-                                      AW_LOG(error)
-                                          << "[App] onUSBHubError: exception caused by this->waitForDevice();";
-                                  }
-                              }
-                          });
-            usbHub.start(std::move(promise));
+            promise->then(std::bind(&App::onUSBDeviceConnected, this->shared_from_this(), std::placeholders::_1),
+                          std::bind(&App::onUSBError, this->shared_from_this(), std::placeholders::_1));
+            usbHub->start(std::move(promise));
             startServerSocket();
-            bluetoothService.start();
         });
     }
 
     void App::stop() {
         strand.dispatch([this, self = this->shared_from_this()]() {
             try {
+                cleanup();
                 bluetoothService.stop();
                 acceptor.cancel();
-                usbHub.cancel();
+                usbHub->cancel();
             } catch (...) {
-                AW_LOG(error) << "[App] stop: exception caused;";
+                AW_LOG(error) << "stop: exception caused;";
             }
         });
 
@@ -68,17 +55,18 @@ namespace aawireless {
             auto socket = std::make_shared<boost::asio::ip::tcp::socket>(ioService);
             acceptor.async_accept(
                     *socket,
-                    std::bind(&App::handleNewClient, this, socket, std::placeholders::_1)
+                    std::bind(&App::onNewSocket, this, socket, std::placeholders::_1)
             );
         });
     }
 
     void
-    App::handleNewClient(std::shared_ptr<boost::asio::ip::tcp::socket> socket, const boost::system::error_code &err) {
+    App::onNewSocket(std::shared_ptr<boost::asio::ip::tcp::socket> socket, const boost::system::error_code &err) {
         strand.dispatch([this, self = this->shared_from_this(), socket, err]() {
             if (!err) {
                 AW_LOG(info) << "WIFI Client connected";
                 socketConnection = connectionFactory.create(std::move(socket));
+                tryStartProxy();
             } else {
                 AW_LOG(error) << "Socket connection error: " << err;
             }
@@ -87,6 +75,8 @@ namespace aawireless {
 
     void App::tryStartProxy() {
         if (usbConnection != nullptr && socketConnection != nullptr) {
+            active = true;
+
             //TODO: start error handling
             usbConnection->start();
             socketConnection->start();
@@ -98,19 +88,27 @@ namespace aawireless {
     }
 
     void App::onUSBReceive(f1x::aasdk::messenger::Message::Pointer message) {
-        auto promise = f1x::aasdk::messenger::SendPromise::defer(strand);
-        promise->then([]() {}, std::bind(&App::onError, this->shared_from_this(), std::placeholders::_1));
+        if (active) {
+            auto promise = f1x::aasdk::messenger::SendPromise::defer(strand);
+            promise->then([]() {}, std::bind(&App::onError, this->shared_from_this(), std::placeholders::_1));
 
-        //TODO: handle messages
-        socketConnection->send(message, promise);
+            //TODO: handle messages
+            socketConnection->send(message, promise);
+
+            startUSBReceive();
+        }
     }
 
     void App::onTCPReceive(f1x::aasdk::messenger::Message::Pointer message) {
-        auto promise = f1x::aasdk::messenger::SendPromise::defer(strand);
-        promise->then([]() {}, std::bind(&App::onError, this->shared_from_this(), std::placeholders::_1));
+        if (active) {
+            auto promise = f1x::aasdk::messenger::SendPromise::defer(strand);
+            promise->then([]() {}, std::bind(&App::onError, this->shared_from_this(), std::placeholders::_1));
 
-        //TODO: handle messages
-        usbConnection->send(message, promise);
+            //TODO: handle messages
+            usbConnection->send(message, promise);
+
+            startTCPReceive();
+        }
     }
 
     void App::startUSBReceive() {
@@ -133,6 +131,7 @@ namespace aawireless {
     }
 
     void App::cleanup() {
+        active = false;
         if (usbConnection != nullptr) {
             usbConnection->stop();
             usbConnection = nullptr;
@@ -140,6 +139,25 @@ namespace aawireless {
         if (socketConnection != nullptr) {
             socketConnection->stop();
             socketConnection = nullptr;
+        }
+    }
+
+    void App::onUSBDeviceConnected(f1x::aasdk::usb::DeviceHandle deviceHandle) {
+        usbConnection = connectionFactory.create(deviceHandle);
+        tryStartProxy();
+    }
+
+    void App::onUSBError(const f1x::aasdk::error::Error &error) {
+        AW_LOG(error) << "usb hub error: " << error.what();
+
+        if (error != f1x::aasdk::error::ErrorCode::OPERATION_ABORTED &&
+            error != f1x::aasdk::error::ErrorCode::OPERATION_IN_PROGRESS) {
+            try {
+                // this->waitForDevice();
+            } catch (...) {
+                AW_LOG(error)
+                    << "onUSBHubError: exception caused by this->waitForDevice();";
+            }
         }
     }
 }

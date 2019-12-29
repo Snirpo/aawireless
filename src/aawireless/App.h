@@ -16,7 +16,7 @@ namespace aawireless {
     class App : public std::enable_shared_from_this<App> {
     public:
         App(boost::asio::io_service &ioService,
-            f1x::aasdk::usb::IUSBHub &usbHub,
+            f1x::aasdk::usb::IUSBHub::Pointer usbHub,
             boost::asio::ip::tcp::acceptor &acceptor,
             aawireless::bluetooth::BluetoothService &bluetoothService,
             aawireless::connection::ConnectionFactory &connectionFactory);
@@ -28,25 +28,37 @@ namespace aawireless {
     private:
         boost::asio::io_service &ioService;
         boost::asio::io_service::strand strand;
-        f1x::aasdk::usb::IUSBHub &usbHub;
+        f1x::aasdk::usb::IUSBHub::Pointer usbHub;
         boost::asio::ip::tcp::acceptor &acceptor;
         aawireless::bluetooth::BluetoothService &bluetoothService;
         aawireless::connection::ConnectionFactory &connectionFactory;
 
         std::shared_ptr<aawireless::connection::Connection> usbConnection;
         std::shared_ptr<aawireless::connection::Connection> socketConnection;
+        bool active = false;
 
         void startServerSocket();
+
         void tryStartProxy();
+
         void startUSBReceive();
+
         void startTCPReceive();
+
         void onUSBReceive(f1x::aasdk::messenger::Message::Pointer message);
+
         void onTCPReceive(f1x::aasdk::messenger::Message::Pointer message);
+
         void onError(const f1x::aasdk::error::Error &error);
+
         void cleanup();
 
         void
-        handleNewClient(std::shared_ptr<boost::asio::ip::tcp::socket> socket, const boost::system::error_code &err);
+        onNewSocket(std::shared_ptr<boost::asio::ip::tcp::socket> socket, const boost::system::error_code &err);
+
+        void onUSBDeviceConnected(f1x::aasdk::usb::DeviceHandle deviceHandle);
+
+        void onUSBError(const f1x::aasdk::error::Error &error);
     };
 }
 

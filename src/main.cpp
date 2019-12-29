@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
     boost::asio::ip::tcp::acceptor acceptor(ioService,
                                             boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 5000));
     aawireless::bluetooth::BluetoothService bluetoothService;
-    f1x::aasdk::usb::USBHub usbHub(usbWrapper, ioService, queryChainFactory);
+    auto usbHub = std::make_shared<f1x::aasdk::usb::USBHub>(usbWrapper, ioService, queryChainFactory);
     aawireless::connection::ConnectionFactory connectionFactory(ioService, tcpWrapper, usbWrapper);
 
     auto app = std::make_shared<aawireless::App>(ioService,
@@ -74,6 +74,8 @@ int main(int argc, char *argv[]) {
     app->start();
 
     auto result = qApplication.exec();
+
+    app->stop();
 
     std::for_each(threadPool.begin(), threadPool.end(), std::bind(&std::thread::join, std::placeholders::_1));
 
