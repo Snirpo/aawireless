@@ -22,6 +22,9 @@ namespace aawireless {
 
         void BluetoothService::start() {
             AW_LOG(info) << "Start listening for bluetooth connections";
+            localDevice.powerOn();
+            localDevice.setHostMode(QBluetoothLocalDevice::HostDiscoverable);
+
             server.listen();
             registerService(server.serverPort());
         }
