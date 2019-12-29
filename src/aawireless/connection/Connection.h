@@ -38,7 +38,11 @@ namespace aawireless {
             std::shared_ptr<f1x::aasdk::messenger::IMessageOutStream> outStream;
             bool active = false;
 
-            void onHandshake(const f1x::aasdk::common::DataConstBuffer &payload);
+            void handleMessage(const f1x::aasdk::messenger::Message::Pointer message,
+                               f1x::aasdk::messenger::ReceivePromise::Pointer promise);
+
+            void onHandshake(const f1x::aasdk::common::DataConstBuffer &payload,
+                             f1x::aasdk::io::Promise<void>::Pointer promise);
 
             void onHandshakeError(const f1x::aasdk::error::Error &error);
         };

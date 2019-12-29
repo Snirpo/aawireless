@@ -46,21 +46,8 @@ namespace aawireless {
                 if (active) {
                     auto innerPromise = f1x::aasdk::messenger::ReceivePromise::defer(receiveStrand);
                     innerPromise->then(
-                            [this, self = this->shared_from_this(), promise](
-                                    f1x::aasdk::messenger::Message::Pointer message) {
-                                if (message->getChannelId() == f1x::aasdk::messenger::ChannelId::CONTROL) {
-                                    f1x::aasdk::messenger::MessageId messageId(message->getPayload());
-                                    f1x::aasdk::common::DataConstBuffer payload(message->getPayload(),
-                                                                                messageId.getSizeOf());
-
-                                    if (messageId.getId() == f1x::aasdk::proto::ids::ControlMessage::SSL_HANDSHAKE) {
-                                        onHandshake(payload);
-                                        inStream->startReceive(std::move(promise));
-                                        return;
-                                    }
-                                }
-                                promise->resolve(message);
-                            },
+                            std::bind(&Connection::handleMessage, this->shared_from_this(), std::placeholders::_1,
+                                      promise),
                             std::bind(&f1x::aasdk::messenger::ReceivePromise::reject, promise, std::placeholders::_1));
 
                     inStream->startReceive(std::move(innerPromise));
@@ -73,15 +60,13 @@ namespace aawireless {
             outStream->stream(std::move(message), std::move(promise));
         }
 
-        void Connection::onHandshake(const f1x::aasdk::common::DataConstBuffer &payload) {
+        void Connection::onHandshake(const f1x::aasdk::common::DataConstBuffer &payload,
+                                     f1x::aasdk::io::Promise<void>::Pointer promise) {
             AW_LOG(info) << "Handshake, size: " << payload.size;
 
             try {
                 cryptor->writeHandshakeBuffer(payload);
 
-                auto promise = f1x::aasdk::io::Promise<void>::defer(receiveStrand);
-                promise->then([]() {}, std::bind(&Connection::onHandshakeError, this->shared_from_this(),
-                                                 std::placeholders::_1));
                 auto message(std::make_shared<f1x::aasdk::messenger::Message>(
                         f1x::aasdk::messenger::ChannelId::CONTROL,
                         f1x::aasdk::messenger::EncryptionType::PLAIN,
@@ -104,13 +89,31 @@ namespace aawireless {
                 this->send(std::move(message), std::move(promise));
             }
             catch (const f1x::aasdk::error::Error &e) {
-                //TODO: handle this
-                //this->onChannelError(e);
+                AW_LOG(error) << "Handshake error: " << e.what();
+                promise->reject(e);
             }
         }
 
-        void Connection::onHandshakeError(const f1x::aasdk::error::Error &error) {
-            //TODO: implement?
+        void Connection::handleMessage(const f1x::aasdk::messenger::Message::Pointer message,
+                                       f1x::aasdk::messenger::ReceivePromise::Pointer promise) {
+            if (message->getChannelId() == f1x::aasdk::messenger::ChannelId::CONTROL) {
+                f1x::aasdk::messenger::MessageId messageId(message->getPayload());
+                f1x::aasdk::common::DataConstBuffer payload(message->getPayload(),
+                                                            messageId.getSizeOf());
+
+                if (messageId.getId() == f1x::aasdk::proto::ids::ControlMessage::SSL_HANDSHAKE) {
+                    auto innerPromise = f1x::aasdk::io::Promise<void>::defer(receiveStrand);
+                    innerPromise->then(
+                            [this, self = this->shared_from_this(), promise]() {
+                                inStream->startReceive(std::move(promise));
+                            },
+                            std::bind(&f1x::aasdk::messenger::ReceivePromise::reject, promise, std::placeholders::_1)
+                    );
+                    onHandshake(payload, std::move(innerPromise));
+                    return;
+                }
+            }
+            promise->resolve(message);
         }
     }
 }

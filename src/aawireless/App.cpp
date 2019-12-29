@@ -8,6 +8,10 @@
 #include <f1x/aasdk/TCP/TCPEndpoint.hpp>
 #include <aawireless/log/Log.h>
 #include <ControlMessageIdsEnum.pb.h>
+#include <BluetoothChannelMessageIdsEnum.pb.h>
+#include <BluetoothPairingResponseMessage.pb.h>
+#include <ServiceDiscoveryResponseMessage.pb.h>
+#include <ServiceDiscoveryRequestMessage.pb.h>
 
 namespace aawireless {
     App::App(boost::asio::io_service &ioService,
@@ -93,9 +97,31 @@ namespace aawireless {
             auto promise = f1x::aasdk::messenger::SendPromise::defer(strand);
             promise->then([]() {}, std::bind(&App::onError, this->shared_from_this(), std::placeholders::_1));
 
+            if (message->getChannelId() == f1x::aasdk::messenger::ChannelId::CONTROL) {
+                f1x::aasdk::messenger::MessageId messageId(message->getPayload());
+                f1x::aasdk::common::DataConstBuffer payload(message->getPayload(), messageId.getSizeOf());
+                if (messageId.getId() == f1x::aasdk::proto::ids::ControlMessage::SERVICE_DISCOVERY_RESPONSE) {
+                    f1x::aasdk::proto::messages::ServiceDiscoveryResponse response;
+                    response.ParseFromArray(payload.cdata, payload.size);
+
+                    for (f1x::aasdk::proto::data::ChannelDescriptor channel : response.channels()) {
+                        if (channel.channel_id() == static_cast<uint32_t>(f1x::aasdk::messenger::ChannelId::BLUETOOTH)) {
+                            auto bluetoothChannel = channel.mutable_bluetooth_channel();
+                            bluetoothChannel->set_adapter_address(""); //TODO: set address
+                            bluetoothChannel->clear_supported_pairing_methods();
+                            bluetoothChannel->add_supported_pairing_methods(f1x::aasdk::proto::enums::BluetoothPairingMethod_Enum_HFP);
+                            bluetoothChannel->add_supported_pairing_methods(f1x::aasdk::proto::enums::BluetoothPairingMethod_Enum_A2DP);
+                        }
+                    }
+
+                    socketConnection->send(message, promise);
+                    startUSBReceive();
+                    return;
+                }
+            }
+
             //TODO: handle messages
             socketConnection->send(message, promise);
-
             startUSBReceive();
         }
     }
@@ -105,8 +131,28 @@ namespace aawireless {
             auto promise = f1x::aasdk::messenger::SendPromise::defer(strand);
             promise->then([]() {}, std::bind(&App::onError, this->shared_from_this(), std::placeholders::_1));
 
-            usbConnection->send(message, promise);
+            if (message->getChannelId() == f1x::aasdk::messenger::ChannelId::BLUETOOTH) {
+                f1x::aasdk::messenger::MessageId messageId(message->getPayload());
+                f1x::aasdk::common::DataConstBuffer payload(message->getPayload(), messageId.getSizeOf());
+                if (messageId.getId() == f1x::aasdk::proto::ids::BluetoothChannelMessage::PAIRING_REQUEST) {
+                    f1x::aasdk::proto::messages::BluetoothPairingResponse response;
+                    //TODO: not hardcoded?
+                    response.set_already_paired(true);
+                    response.set_status(f1x::aasdk::proto::enums::BluetoothPairingStatus::OK);
+                    auto msg(std::make_shared<f1x::aasdk::messenger::Message>(
+                            f1x::aasdk::messenger::ChannelId::BLUETOOTH,
+                            f1x::aasdk::messenger::EncryptionType::ENCRYPTED,
+                            f1x::aasdk::messenger::MessageType::SPECIFIC));
+                    msg->insertPayload(f1x::aasdk::messenger::MessageId(f1x::aasdk::proto::ids::BluetoothChannelMessage::PAIRING_RESPONSE).getData());
+                    msg->insertPayload(response);
 
+                    socketConnection->send(std::move(msg), std::move(promise));
+                    startTCPReceive();
+                    return;
+                }
+            }
+
+            usbConnection->send(std::move(message), std::move(promise));
             startTCPReceive();
         }
     }
