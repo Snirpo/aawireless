@@ -7,6 +7,7 @@
 #include <f1x/aasdk/USB/AOAPDevice.hpp>
 #include <f1x/aasdk/TCP/TCPEndpoint.hpp>
 #include <aawireless/log/Log.h>
+#include <ControlMessageIdsEnum.pb.h>
 
 namespace aawireless {
     App::App(boost::asio::io_service &ioService,
@@ -104,7 +105,6 @@ namespace aawireless {
             auto promise = f1x::aasdk::messenger::SendPromise::defer(strand);
             promise->then([]() {}, std::bind(&App::onError, this->shared_from_this(), std::placeholders::_1));
 
-            //TODO: handle messages
             usbConnection->send(message, promise);
 
             startTCPReceive();
