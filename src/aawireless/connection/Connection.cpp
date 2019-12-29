@@ -39,27 +39,17 @@ namespace aawireless {
             });
         }
 
-        std::shared_ptr<f1x::aasdk::io::Promise<std::shared_ptr<f1x::aasdk::messenger::Message>>>
-        Connection::receive() {
-            auto promise = f1x::aasdk::messenger::ReceivePromise::defer(receiveStrand);
+        void Connection::receive(f1x::aasdk::messenger::ReceivePromise::Pointer promise) {
             receiveStrand.dispatch([this, self = this->shared_from_this(), promise]() {
                 if (active) {
-                    auto inStreamPromise = f1x::aasdk::messenger::ReceivePromise::defer(receiveStrand);
                     inStream->startReceive(std::move(promise));
                 }
             });
-            return promise;
         }
 
-        std::shared_ptr<f1x::aasdk::io::Promise<void, f1x::aasdk::error::Error>>
-        Connection::send(f1x::aasdk::messenger::Message::Pointer message) {
-            auto promise = f1x::aasdk::messenger::SendPromise::defer(sendStrand);
-            sendStrand.dispatch([this, self = this->shared_from_this(), promise, message]() {
-                if (active) {
-                    outStream->stream(std::move(message), std::move(promise));
-                }
-            });
-            return promise;
+        void Connection::send(f1x::aasdk::messenger::Message::Pointer message,
+                              f1x::aasdk::messenger::SendPromise::Pointer promise) {
+            outStream->stream(std::move(message), std::move(promise));
         }
     }
 }

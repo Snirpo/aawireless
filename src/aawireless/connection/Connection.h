@@ -24,8 +24,8 @@ namespace aawireless {
 
             void stop();
 
-            std::shared_ptr<f1x::aasdk::io::Promise<void, f1x::aasdk::error::Error>>
-            send(f1x::aasdk::messenger::Message::Pointer message);
+            void send(f1x::aasdk::messenger::Message::Pointer message, f1x::aasdk::messenger::SendPromise::Pointer promise);
+            void receive(f1x::aasdk::messenger::ReceivePromise::Pointer promise);
 
         private:
             boost::asio::io_service::strand receiveStrand;
@@ -35,8 +35,6 @@ namespace aawireless {
             std::shared_ptr<f1x::aasdk::messenger::IMessageInStream> inStream;
             std::shared_ptr<f1x::aasdk::messenger::IMessageOutStream> outStream;
             bool active = false;
-
-            std::shared_ptr<f1x::aasdk::io::Promise<std::shared_ptr<f1x::aasdk::messenger::Message>>> receive();
         };
     }
 }

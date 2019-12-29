@@ -85,7 +85,61 @@ namespace aawireless {
         });
     }
 
-    void App::tryCreateConnection() {
+    void App::tryStartProxy() {
+        if (usbConnection != nullptr && socketConnection != nullptr) {
+            //TODO: start error handling
+            usbConnection->start();
+            socketConnection->start();
 
+            startUSBReceive();
+            startTCPReceive();
+        }
+
+    }
+
+    void App::onUSBReceive(f1x::aasdk::messenger::Message::Pointer message) {
+        auto promise = f1x::aasdk::messenger::SendPromise::defer(strand);
+        promise->then([]() {}, std::bind(&App::onError, this->shared_from_this(), std::placeholders::_1));
+
+        //TODO: handle messages
+        socketConnection->send(message, promise);
+    }
+
+    void App::onTCPReceive(f1x::aasdk::messenger::Message::Pointer message) {
+        auto promise = f1x::aasdk::messenger::SendPromise::defer(strand);
+        promise->then([]() {}, std::bind(&App::onError, this->shared_from_this(), std::placeholders::_1));
+
+        //TODO: handle messages
+        usbConnection->send(message, promise);
+    }
+
+    void App::startUSBReceive() {
+        auto receivePromise = f1x::aasdk::messenger::ReceivePromise::defer(strand);
+        receivePromise->then(std::bind(&App::onUSBReceive, this->shared_from_this(), std::placeholders::_1),
+                             std::bind(&App::onError, this->shared_from_this(), std::placeholders::_1));
+        usbConnection->receive(receivePromise);
+    }
+
+    void App::startTCPReceive() {
+        auto receivePromise = f1x::aasdk::messenger::ReceivePromise::defer(strand);
+        receivePromise->then(std::bind(&App::onTCPReceive, this->shared_from_this(), std::placeholders::_1),
+                             std::bind(&App::onError, this->shared_from_this(), std::placeholders::_1));
+        socketConnection->receive(receivePromise);
+    }
+
+    void App::onError(const f1x::aasdk::error::Error &error) {
+        cleanup();
+        AW_LOG(error) << "Connection error: " << error.getNativeCode();
+    }
+
+    void App::cleanup() {
+        if (usbConnection != nullptr) {
+            usbConnection->stop();
+            usbConnection = nullptr;
+        }
+        if (socketConnection != nullptr) {
+            socketConnection->stop();
+            socketConnection = nullptr;
+        }
     }
 }

@@ -37,7 +37,13 @@ namespace aawireless {
         std::shared_ptr<aawireless::connection::Connection> socketConnection;
 
         void startServerSocket();
-        void tryCreateConnection();
+        void tryStartProxy();
+        void startUSBReceive();
+        void startTCPReceive();
+        void onUSBReceive(f1x::aasdk::messenger::Message::Pointer message);
+        void onTCPReceive(f1x::aasdk::messenger::Message::Pointer message);
+        void onError(const f1x::aasdk::error::Error &error);
+        void cleanup();
 
         void
         handleNewClient(std::shared_ptr<boost::asio::ip::tcp::socket> socket, const boost::system::error_code &err);
