@@ -10,12 +10,17 @@
 #include <iomanip>
 #include <WifiInfoResponseMessage.pb.h>
 #include <WifiSecurityResponseMessage.pb.h>
+#include <QtDBus/QDBusConnection>
+#include <QtDBus/QDBusInterface>
+#include <QtDBus/QDBusReply>
 
 namespace aawireless {
     namespace bluetooth {
-        BluetoothService::BluetoothService(aawireless::configuration::Configuration &configuration) :
+        BluetoothService::BluetoothService(aawireless::configuration::Configuration &configuration,
+                                           aawireless::database::Database &database) :
                 server(QBluetoothServiceInfo::RfcommProtocol),
-                configuration(configuration) {
+                configuration(configuration),
+                database(database) {
             connect(&server, &QBluetoothServer::newConnection, this,
                     &BluetoothService::onClientConnected);
         }
@@ -23,10 +28,31 @@ namespace aawireless {
         void BluetoothService::start() {
             AW_LOG(info) << "Start listening for bluetooth connections";
             localDevice.powerOn();
-            localDevice.setHostMode(QBluetoothLocalDevice::HostDiscoverable);
+            //localDevice.setHostMode(QBluetoothLocalDevice::HostDiscoverable);
 
-            server.listen();
+            server.listen(localDevice.address());
             registerService(server.serverPort());
+
+            if (!database.getLastBluetoothDevice().empty()) {
+                connectDevice(database.getLastBluetoothDevice());
+            }
+        }
+
+        void BluetoothService::connectDevice(std::string address) {
+            AW_LOG(info) << "Connecting to " << address;
+            std::replace(address.begin(), address.end(), ':', '_');
+            QDBusInterface iface("org.bluez",
+                                 std::string("/org/bluez/hci0/dev_").append(address).c_str(),
+                                 "org.bluez.Device1",
+                                 QDBusConnection::systemBus());
+            if (iface.isValid()) {
+                QDBusReply<void> reply = iface.call("Connect");
+                if (!reply.isValid()) {
+                    AW_LOG(error) << reply.error().message().toStdString();
+                }
+            } else {
+                AW_LOG(error) << "Invalid interface" << iface.lastError().message().toStdString();
+            }
         }
 
         void BluetoothService::stop() {
@@ -37,6 +63,9 @@ namespace aawireless {
             if (socket != nullptr) {
                 socket->deleteLater();
             }
+
+            database.setLastBluetoothDevice(socket->peerAddress().toString().toStdString());
+            database.save();
 
             socket = server.nextPendingConnection();
 
@@ -49,12 +78,12 @@ namespace aawireless {
 //                            QOverload<>::of(&ChatServer::clientDisconnected));
 
                 f1x::aasdk::proto::messages::WifiInfoRequest request;
-                request.set_ip_address("192.168.1.123");
-                request.set_port(5000);
+                request.set_ip_address(configuration.wifiIpAddress);
+                request.set_port(configuration.wifiPort);
 
                 sendMessage(request, 1);
             } else {
-                AW_LOG(error) << "[AndroidBluetoothServer] received null socket during client connection.";
+                AW_LOG(error) << "received null socket during client connection.";
             }
         }
 

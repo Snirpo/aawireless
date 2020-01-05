@@ -1,4 +1,5 @@
 #include <QCoreApplication>
+#include <QtDBus/QDBusConnection>
 #include <thread>
 #include <libusb.h>
 #include "aawireless/bluetooth/BluetoothService.h"
@@ -14,6 +15,7 @@
 #include <aawireless/App.h>
 #include <aawireless/connection/ConnectionFactory.h>
 #include <aawireless/configuration/Configuration.h>
+#include <aawireless/database/Database.h>
 
 using ThreadPool = std::vector<std::thread>;
 
@@ -44,6 +46,11 @@ void startIOServiceWorkers(boost::asio::io_service &ioService, ThreadPool &threa
 }
 
 int main(int argc, char *argv[]) {
+    if (!QDBusConnection::systemBus().isConnected()) {
+        AW_LOG(error) << "Cannot connect to the D-Bus session bus.";
+        return 1;
+    }
+
     libusb_context *usbContext;
     if (libusb_init(&usbContext) != 0) {
         AW_LOG(error) << "[OpenAuto] libusb init failed.";
@@ -59,13 +66,14 @@ int main(int argc, char *argv[]) {
     QCoreApplication qApplication(argc, argv);
 
     aawireless::configuration::Configuration configuration("config.ini");
+    aawireless::database::Database database("/var/lib/aawireless/db.ini");
     f1x::aasdk::tcp::TCPWrapper tcpWrapper;
     f1x::aasdk::usb::USBWrapper usbWrapper(usbContext);
     f1x::aasdk::usb::AccessoryModeQueryFactory queryFactory(usbWrapper, ioService);
     f1x::aasdk::usb::AccessoryModeQueryChainFactory queryChainFactory(usbWrapper, ioService, queryFactory);
     boost::asio::ip::tcp::acceptor acceptor(ioService,
                                             boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 5000));
-    aawireless::bluetooth::BluetoothService bluetoothService(configuration);
+    aawireless::bluetooth::BluetoothService bluetoothService(configuration, database);
     auto usbHub = std::make_shared<f1x::aasdk::usb::USBHub>(usbWrapper, ioService, queryChainFactory);
     aawireless::connection::ConnectionFactory connectionFactory(ioService, tcpWrapper, usbWrapper);
 

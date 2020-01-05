@@ -9,6 +9,7 @@
 #include <google/protobuf/message.h>
 #include <QtBluetooth/QBluetoothLocalDevice>
 #include <aawireless/configuration/Configuration.h>
+#include <aawireless/database/Database.h>
 
 namespace aawireless {
     namespace bluetooth {
@@ -16,7 +17,8 @@ namespace aawireless {
         Q_OBJECT
 
         public:
-            BluetoothService(aawireless::configuration::Configuration &configuration);
+            BluetoothService(aawireless::configuration::Configuration &configuration,
+                    aawireless::database::Database &database);
 
             void start();
 
@@ -35,6 +37,7 @@ namespace aawireless {
             QByteArray buffer;
             QBluetoothSocket *socket = nullptr;
             aawireless::configuration::Configuration &configuration;
+            aawireless::database::Database &database;
 
             void readSocket();
 
@@ -47,6 +50,8 @@ namespace aawireless {
             void handleWifiInfoRequestResponse(QByteArray &buffer, uint16_t length);
 
             void registerService(quint16 port);
+
+            void connectDevice(std::string address);
         };
     }
 }

@@ -36,13 +36,14 @@ set(AASDK_PROTO_INCLUDE_DIRS /usr/local/include/aasdk_proto)
 
 find_package(Boost REQUIRED COMPONENTS system log OPTIONAL_COMPONENTS unit_test_framework)
 find_package(libusb-1.0 REQUIRED)
-find_package(Qt5 COMPONENTS Bluetooth Network)
+find_package(Qt5 COMPONENTS Bluetooth Network DBus)
 find_package(Protobuf REQUIRED)
 find_package(OpenSSL REQUIRED)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR}
         ${Qt5Bluetooth_INCLUDE_DIRS}
         ${Qt5Network_INCLUDE_DIRS}
+        ${Qt5DBus_INCLUDE_DIRS}
         ${Boost_INCLUDE_DIRS}
         ${LIBUSB_1_INCLUDE_DIRS}
         ${PROTOBUF_INCLUDE_DIR}
@@ -59,6 +60,7 @@ target_link_libraries(aawireless
         ${Boost_LIBRARIES}
         ${Qt5Bluetooth_LIBRARIES}
         ${Qt5Network_LIBRARIES}
+        ${Qt5DBus_LIBRARIES}
         ${LIBUSB_1_LIBRARIES}
         ${PROTOBUF_LIBRARIES}
         ${AASDK_PROTO_LIBRARIES}
