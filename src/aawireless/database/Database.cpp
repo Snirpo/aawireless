@@ -3,6 +3,7 @@
 //
 
 #include <boost/property_tree/ptree.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include "Database.h"
 
@@ -14,15 +15,18 @@ namespace aawireless {
 
         void Database::load() {
             boost::property_tree::ptree iniConfig;
-            try {
+            // TODO: create directories + file if not exist
+            if (boost::filesystem::exists(file)) {
                 boost::property_tree::ini_parser::read_ini(file, iniConfig);
-            } catch (...) {}
+            }
             lastBluetoothDevice = iniConfig.get<std::string>("Bluetooth.LastDevice", std::string());
         }
 
         void Database::save() {
             boost::property_tree::ptree iniConfig;
-            boost::property_tree::ini_parser::read_ini(file, iniConfig);
+            if (boost::filesystem::exists(file)) {
+                boost::property_tree::ini_parser::read_ini(file, iniConfig);
+            }
             iniConfig.put("Bluetooth.LastDevice", lastBluetoothDevice);
             boost::property_tree::ini_parser::write_ini(file, iniConfig);
         }

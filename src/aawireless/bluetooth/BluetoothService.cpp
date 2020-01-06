@@ -64,10 +64,10 @@ namespace aawireless {
                 socket->deleteLater();
             }
 
+            socket = server.nextPendingConnection();
+
             database.setLastBluetoothDevice(socket->peerAddress().toString().toStdString());
             database.save();
-
-            socket = server.nextPendingConnection();
 
             if (socket != nullptr) {
                 AW_LOG(info) << "[AndroidBluetoothServer] rfcomm client connected, peer name: "
