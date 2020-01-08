@@ -34,7 +34,7 @@ set(AASDK_PROTO_LIBRARIES /usr/local/lib/libaasdk_proto.so)
 set(AASDK_PROTO_INCLUDE_DIRS /usr/local/include/aasdk_proto)
 ###
 
-find_package(Boost REQUIRED COMPONENTS system log OPTIONAL_COMPONENTS unit_test_framework)
+find_package(Boost REQUIRED COMPONENTS system log random OPTIONAL_COMPONENTS unit_test_framework)
 find_package(libusb-1.0 REQUIRED)
 find_package(Qt5 COMPONENTS Bluetooth Network DBus)
 find_package(Protobuf REQUIRED)

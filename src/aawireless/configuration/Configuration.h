@@ -11,11 +11,13 @@ namespace aawireless {
         public:
             Configuration(const std::string &file);
 
+            std::string wifiDevice;
             std::string wifiIpAddress;
             uint16_t wifiPort;
             std::string wifiBSSID;
             std::string wifiSSID;
             std::string wifiPassphrase;
+            std::string wifiHotspotScript;
         };
     }
 }

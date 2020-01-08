@@ -14,20 +14,25 @@
 #include <ServiceDiscoveryRequestMessage.pb.h>
 
 namespace aawireless {
-    App::App(boost::asio::io_service &ioService, f1x::aasdk::usb::IUSBHub::Pointer usbHub,
-             boost::asio::ip::tcp::acceptor &acceptor, bluetooth::BluetoothService &bluetoothService,
+    App::App(boost::asio::io_service &ioService,
+             f1x::aasdk::usb::IUSBHub::Pointer usbHub,
+             boost::asio::ip::tcp::acceptor &acceptor,
+             wifi::WifiHotspot &wifiHotspot,
+             bluetooth::BluetoothService &bluetoothService,
              connection::ConnectionFactory &connectionFactory,
              configuration::Configuration &configuration)
             : ioService(ioService),
               strand(ioService),
               usbHub(std::move(usbHub)),
               acceptor(acceptor),
+              wifiHotspot(wifiHotspot),
               bluetoothService(bluetoothService),
               connectionFactory(connectionFactory),
               configuration(configuration) {
     }
 
     void App::start() {
+        wifiHotspot.start();
         bluetoothService.start();
         strand.dispatch([this, self = this->shared_from_this()]() {
             AW_LOG(info) << "Starting";
@@ -107,7 +112,7 @@ namespace aawireless {
                     for (auto &channel : *response.mutable_channels()) {
                         if (channel.channel_id() ==
                             static_cast<uint32_t>(f1x::aasdk::messenger::ChannelId::BLUETOOTH)) {
-                            f1x::aasdk::proto::data::BluetoothChannel* bluetoothChannel = channel.mutable_bluetooth_channel();
+                            f1x::aasdk::proto::data::BluetoothChannel *bluetoothChannel = channel.mutable_bluetooth_channel();
                             bluetoothChannel->set_adapter_address(bluetoothService.getAddress()); //TODO: set address
                             bluetoothChannel->clear_supported_pairing_methods();
                             bluetoothChannel->add_supported_pairing_methods(

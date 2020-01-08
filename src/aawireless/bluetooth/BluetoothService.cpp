@@ -17,10 +17,12 @@
 namespace aawireless {
     namespace bluetooth {
         BluetoothService::BluetoothService(aawireless::configuration::Configuration &configuration,
-                                           aawireless::database::Database &database) :
+                                           aawireless::database::Database &database,
+                                           std::string password) :
                 server(QBluetoothServiceInfo::RfcommProtocol),
                 configuration(configuration),
-                database(database) {
+                database(database),
+                password(password) {
             connect(&server, &QBluetoothServer::newConnection, this,
                     &BluetoothService::onClientConnected);
         }
@@ -28,7 +30,7 @@ namespace aawireless {
         void BluetoothService::start() {
             AW_LOG(info) << "Start listening for bluetooth connections";
             localDevice.powerOn();
-            //localDevice.setHostMode(QBluetoothLocalDevice::HostDiscoverable);
+            localDevice.setHostMode(QBluetoothLocalDevice::HostDiscoverable);
 
             server.listen(localDevice.address());
             registerService(server.serverPort());

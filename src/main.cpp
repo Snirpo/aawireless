@@ -16,6 +16,9 @@
 #include <aawireless/connection/ConnectionFactory.h>
 #include <aawireless/configuration/Configuration.h>
 #include <aawireless/database/Database.h>
+#include <aawireless/wifi/WifiHotspot.h>
+#include "boost/random/random_device.hpp"
+#include "boost/random/uniform_int_distribution.hpp"
 
 using ThreadPool = std::vector<std::thread>;
 
@@ -45,6 +48,29 @@ void startIOServiceWorkers(boost::asio::io_service &ioService, ThreadPool &threa
     threadPool.emplace_back(ioServiceWorker);
 }
 
+//TODO: refactor to other location
+std::string generatePassword() {
+    std::string chars(
+            "abcdefghijklmnopqrstuvwxyz"
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            "1234567890"
+            "!@#$%^&*()");
+    //"`~-_=+[{]{\\|;:'\",<.>/? ");
+    /*<< We use __random_device as a source of entropy, since we want
+         passwords that are not predictable.
+    >>*/
+    boost::random::random_device rng;
+    /*<< Finally we select 8 random characters from the
+         string and print them to cout.
+    >>*/
+    boost::random::uniform_int_distribution<> index_dist(0, chars.size() - 1);
+    std::stringstream ss;
+    for(int i = 0; i < 12; ++i) {
+        ss << chars[index_dist(rng)];
+    }
+    return ss.str();
+}
+
 int main(int argc, char *argv[]) {
     if (!QDBusConnection::systemBus().isConnected()) {
         AW_LOG(error) << "Cannot connect to the D-Bus session bus.";
@@ -65,6 +91,7 @@ int main(int argc, char *argv[]) {
 
     QCoreApplication qApplication(argc, argv);
 
+    std::string password = generatePassword();
     aawireless::configuration::Configuration configuration("config.ini");
     aawireless::database::Database database("/var/lib/aawireless/db.ini");
     f1x::aasdk::tcp::TCPWrapper tcpWrapper;
@@ -73,13 +100,15 @@ int main(int argc, char *argv[]) {
     f1x::aasdk::usb::AccessoryModeQueryChainFactory queryChainFactory(usbWrapper, ioService, queryFactory);
     boost::asio::ip::tcp::acceptor acceptor(ioService,
                                             boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 5000));
-    aawireless::bluetooth::BluetoothService bluetoothService(configuration, database);
+    aawireless::bluetooth::BluetoothService bluetoothService(configuration, database, password);
+    aawireless::wifi::WifiHotspot wifiHotspot(ioService, configuration, password);
     auto usbHub = std::make_shared<f1x::aasdk::usb::USBHub>(usbWrapper, ioService, queryChainFactory);
     aawireless::connection::ConnectionFactory connectionFactory(ioService, tcpWrapper, usbWrapper);
 
     auto app = std::make_shared<aawireless::App>(ioService,
                                                  usbHub,
                                                  acceptor,
+                                                 wifiHotspot,
                                                  bluetoothService,
                                                  connectionFactory,
                                                  configuration);

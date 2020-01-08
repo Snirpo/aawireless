@@ -18,7 +18,8 @@ namespace aawireless {
 
         public:
             BluetoothService(aawireless::configuration::Configuration &configuration,
-                    aawireless::database::Database &database);
+                    aawireless::database::Database &database,
+                    std::string password);
 
             void start();
 
@@ -38,6 +39,7 @@ namespace aawireless {
             QBluetoothSocket *socket = nullptr;
             aawireless::configuration::Configuration &configuration;
             aawireless::database::Database &database;
+            std::string password;
 
             void readSocket();
 
