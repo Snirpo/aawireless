@@ -92,6 +92,8 @@ int main(int argc, char *argv[]) {
     QCoreApplication qApplication(argc, argv);
 
     std::string password = generatePassword();
+    AW_LOG(info) << "Wifi password " << password;
+
     aawireless::configuration::Configuration configuration("config.ini");
     aawireless::database::Database database("/var/lib/aawireless/db.ini");
     f1x::aasdk::tcp::TCPWrapper tcpWrapper;

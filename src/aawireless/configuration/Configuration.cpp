@@ -15,10 +15,8 @@ namespace aawireless {
             wifiDevice = iniConfig.get<std::string>("Wifi.Device");
             wifiIpAddress = iniConfig.get<std::string>("Wifi.IpAddress");
             wifiPort = iniConfig.get<std::uint16_t>("Wifi.Port");
-            wifiBSSID = iniConfig.get<std::string>("Wifi.BSSID");
             wifiSSID = iniConfig.get<std::string>("Wifi.SSID");
-            wifiPassphrase = iniConfig.get<std::string>("Wifi.Passphrase");
-            wifiHotspotScript = iniConfig.get<std::string>("Wifi.HotspotScript");
+            //wifiPassphrase = iniConfig.get<std::string>("Wifi.Passphrase"); // TODO: implement for hardcoded passphrase instead of generated
         }
     }
 }
