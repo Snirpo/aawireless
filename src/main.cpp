@@ -19,6 +19,10 @@
 #include <aawireless/wifi/WifiHotspot.h>
 #include "boost/random/random_device.hpp"
 #include "boost/random/uniform_int_distribution.hpp"
+#include <BluezQt/Manager>
+#include <BluezQt/InitManagerJob>
+#include <BluezQt/PendingCall>
+#include <aawireless/bluetooth/HFPProxyProfile.h>
 
 using ThreadPool = std::vector<std::thread>;
 
@@ -106,6 +110,25 @@ int main(int argc, char *argv[]) {
     aawireless::wifi::WifiHotspot wifiHotspot(ioService, configuration, password);
     auto usbHub = std::make_shared<f1x::aasdk::usb::USBHub>(usbWrapper, ioService, queryChainFactory);
     aawireless::connection::ConnectionFactory connectionFactory(ioService, tcpWrapper, usbWrapper);
+
+    auto btManager = std::make_shared<BluezQt::Manager>();
+    auto initJob = btManager->init(); // TODO: refactor to InitManagerJob->start()
+    initJob->exec();
+    if (initJob->error()) {
+        AW_LOG(error) << "Error running bt init job" << initJob->errorText().toStdString();
+        return 1;
+    }
+
+    auto hfpProxyProfile = std::make_shared<HFPProxyProfile>();
+    BluezQt::PendingCall *call = btManager->registerProfile(hfpProxyProfile.get());
+    call->waitForFinished();
+
+    if (call->error()) {
+        AW_LOG(error) << "Error registering profile" << call->errorText().toStdString();
+        return 1;
+    }
+
+    AW_LOG(info) << "HFP profile registered";
 
     auto app = std::make_shared<aawireless::App>(ioService,
                                                  usbHub,
