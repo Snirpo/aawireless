@@ -41,6 +41,7 @@ find_package(Protobuf REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(KF5NetworkManagerQt REQUIRED)
 find_package(KF5BluezQt REQUIRED)
+find_package(libbluetooth REQUIRED)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR}
         ${Boost_INCLUDE_DIRS}
