@@ -29,27 +29,13 @@ public:
 
 public:
 signals:
-
-    void onConnected();
-
-    void onDisconnected();
-
-    void onData(QByteArray data);
-
-    void onSCOData(QByteArray data);
+    void onNewRfcommSocket(QSharedPointer<QLocalSocket> rfcommSocket);
+    void onNewSCOSocket(QLocalSocket* scoSocket);
 
 private:
     QSharedPointer<QLocalSocket> rfcommSocket;
     QSharedPointer<QLocalServer> scoSocketServer;
     QLocalSocket* scoSocket;
-
-    void socketReadyRead();
-
-    void scoReadyRead();
-
-    void socketDisconnected();
-
-    void scoDisconnected();
 
     int createSCOSocket(QString srcAddress);
 

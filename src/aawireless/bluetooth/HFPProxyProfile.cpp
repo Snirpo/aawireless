@@ -30,6 +30,10 @@ QString HFPProxyProfile::uuid() const {
 void HFPProxyProfile::newConnection(BluezQt::DevicePtr device, const QDBusUnixFileDescriptor &fd,
                                     const QVariantMap &properties, const BluezQt::Request<> &request) {
     AW_LOG(info) << "Creating rfcomm socket";
+
+    if (rfcommSocket) rfcommSocket->close();
+    if (scoSocketServer) scoSocketServer->close();
+
     rfcommSocket = createSocket(fd);
     if (!rfcommSocket->isValid()) {
         request.cancel();
@@ -37,15 +41,12 @@ void HFPProxyProfile::newConnection(BluezQt::DevicePtr device, const QDBusUnixFi
         return;
     }
 
-    connect(rfcommSocket.data(), &QLocalSocket::readyRead, this, &HFPProxyProfile::socketReadyRead);
-    connect(rfcommSocket.data(), &QLocalSocket::disconnected, this, &HFPProxyProfile::socketDisconnected);
-
     AW_LOG(info) << "Listening for SCO connections";
-    auto deviceAddress = device->address();
     auto adapterAddress = device->adapter()->address();
     int scoFd = createSCOSocket(adapterAddress);
     scoSocketServer = QSharedPointer<QLocalServer>(new QLocalServer);
-    scoSocketServer->connect(scoSocketServer.data(), &QLocalServer::newConnection, this, &HFPProxyProfile::scoNewConnection);
+    scoSocketServer->connect(scoSocketServer.data(), &QLocalServer::newConnection, this,
+                             &HFPProxyProfile::scoNewConnection);
 
     if (!scoSocketServer->listen(scoFd)) {
         request.cancel();
@@ -55,35 +56,14 @@ void HFPProxyProfile::newConnection(BluezQt::DevicePtr device, const QDBusUnixFi
 
     request.accept();
 
-    emit onConnected();
+    emit onNewRfcommSocket(rfcommSocket);
 }
 
 void HFPProxyProfile::scoNewConnection() {
     scoSocket = scoSocketServer->nextPendingConnection();
-    connect(scoSocket, &QLocalSocket::readyRead, this, &HFPProxyProfile::scoReadyRead);
-    connect(scoSocket, &QLocalSocket::disconnected, this, &HFPProxyProfile::scoDisconnected);
-    AW_LOG(info) << "New SCO connection ";
-}
+    AW_LOG(info) << "New SCO connection";
 
-void HFPProxyProfile::scoDisconnected() {
-    AW_LOG(info) << "HFP SCO socket disconnected";
-}
-
-void HFPProxyProfile::scoReadyRead() {
-    AW_LOG(info) << "SCO data";
-    emit onSCOData(scoSocket->readAll());
-}
-
-void HFPProxyProfile::socketReadyRead() {
-    QByteArray data = rfcommSocket->readAll();
-    AW_LOG(info) << "Rfcomm data " << data.toStdString();
-    emit onData(data);
-}
-
-void HFPProxyProfile::socketDisconnected() {
-    AW_LOG(info) << "HFP rfcomm socket disconnected";
-    emit onDisconnected();
-    //release();
+    emit onNewSCOSocket(scoSocket);
 }
 
 void HFPProxyProfile::requestDisconnection(BluezQt::DevicePtr device, const BluezQt::Request<> &request) {
@@ -146,7 +126,7 @@ int HFPProxyProfile::createSCOSocket(QString srcAddress) {
     }
 
     AW_LOG(info) << "Creating SCO socket on " << srcAddress.toStdString();
-    const char* src_addr = srcAddress.toLocal8Bit().data();
+    const char *src_addr = srcAddress.toLocal8Bit().data();
     bdaddr_t src;
 
     /* don't use ba2str to avoid -lbluetooth */
