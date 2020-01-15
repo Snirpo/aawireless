@@ -19,6 +19,7 @@ namespace aawireless {
              boost::asio::ip::tcp::acceptor &acceptor,
              wifi::WifiHotspot &wifiHotspot,
              bluetooth::BluetoothService &bluetoothService,
+             bluetooth::HFPProxyService &hfpProxyService,
              connection::ConnectionFactory &connectionFactory,
              configuration::Configuration &configuration)
             : ioService(ioService),
@@ -27,11 +28,13 @@ namespace aawireless {
               acceptor(acceptor),
               wifiHotspot(wifiHotspot),
               bluetoothService(bluetoothService),
+              hfpProxyService(hfpProxyService),
               connectionFactory(connectionFactory),
               configuration(configuration) {
     }
 
     void App::start() {
+        hfpProxyService.start();
         wifiHotspot.start();
         bluetoothService.start();
         strand.dispatch([this, self = this->shared_from_this()]() {
@@ -48,8 +51,10 @@ namespace aawireless {
     void App::stop() {
         strand.dispatch([this, self = this->shared_from_this()]() {
             try {
+                //TODO: better cleanup
                 cleanup();
                 bluetoothService.stop();
+                hfpProxyService.stop();
                 acceptor.cancel();
                 usbHub->cancel();
             } catch (...) {

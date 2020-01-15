@@ -70,13 +70,14 @@ void HFPProxyProfile::scoDisconnected() {
 }
 
 void HFPProxyProfile::scoReadyRead() {
-    emit onSCOData(scoSocket->readAll());
     AW_LOG(info) << "SCO data";
+    emit onSCOData(scoSocket->readAll());
 }
 
 void HFPProxyProfile::socketReadyRead() {
-    emit onData(rfcommSocket->readAll());
-    AW_LOG(info) << "Rfcomm data";
+    QByteArray data = rfcommSocket->readAll();
+    AW_LOG(info) << "Rfcomm data " << data.toStdString();
+    emit onData(data);
 }
 
 void HFPProxyProfile::socketDisconnected() {

@@ -23,6 +23,7 @@
 #include <BluezQt/InitManagerJob>
 #include <BluezQt/PendingCall>
 #include <aawireless/bluetooth/HFPProxyProfile.h>
+#include <aawireless/bluetooth/HFPProxyService.h>
 
 using ThreadPool = std::vector<std::thread>;
 
@@ -112,23 +113,14 @@ int main(int argc, char *argv[]) {
         AW_LOG(error) << "Error running bt init job" << initJob->errorText().toStdString();
         return 1;
     }
-
-    auto hfpProxyProfile = std::make_shared<HFPProxyProfile>();
-    BluezQt::PendingCall *call = btManager->registerProfile(hfpProxyProfile.get());
-    call->waitForFinished();
-
-    if (call->error()) {
-        AW_LOG(error) << "Error registering profile" << call->errorText().toStdString();
-        return 1;
-    }
-
-    AW_LOG(info) << "HFP profile registered";
+    aawireless::bluetooth::HFPProxyService hfpProxyService(btManager);
 
     auto app = std::make_shared<aawireless::App>(ioService,
                                                  usbHub,
                                                  acceptor,
                                                  wifiHotspot,
                                                  bluetoothService,
+                                                 hfpProxyService,
                                                  connectionFactory,
                                                  configuration);
     app->start();

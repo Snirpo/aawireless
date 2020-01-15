@@ -13,6 +13,7 @@
 #include <aawireless/connection/ConnectionFactory.h>
 #include <aawireless/configuration/Configuration.h>
 #include <aawireless/wifi/WifiHotspot.h>
+#include <aawireless/bluetooth/HFPProxyService.h>
 
 namespace aawireless {
     class App : public std::enable_shared_from_this<App> {
@@ -22,6 +23,7 @@ namespace aawireless {
             boost::asio::ip::tcp::acceptor &acceptor,
             wifi::WifiHotspot &wifiHotspot,
             bluetooth::BluetoothService &bluetoothService,
+            bluetooth::HFPProxyService &hfpProxyService,
             connection::ConnectionFactory &connectionFactory,
             configuration::Configuration &configuration);
 
@@ -36,6 +38,7 @@ namespace aawireless {
         boost::asio::ip::tcp::acceptor &acceptor;
         aawireless::wifi::WifiHotspot &wifiHotspot;
         aawireless::bluetooth::BluetoothService &bluetoothService;
+        aawireless::bluetooth::HFPProxyService &hfpProxyService;
         aawireless::connection::ConnectionFactory &connectionFactory;
         configuration::Configuration &configuration;
 
