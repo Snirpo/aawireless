@@ -6,6 +6,7 @@
 #include "HFPProxyProfile.h"
 #include <BluezQt/PendingCall>
 #include <aawireless/log/Log.h>
+#include <QtBluetooth/QBluetoothSocket>
 
 namespace aawireless {
     namespace bluetooth {
@@ -17,6 +18,8 @@ namespace aawireless {
             hfpProxyProfile = std::make_shared<HFPProxyProfile>();
             BluezQt::PendingCall *call = btManager->registerProfile(hfpProxyProfile.get());
             connect(call, &BluezQt::PendingCall::finished, this, &HFPProxyService::onProfileReady);
+            connect(hfpProxyProfile.get(), &HFPProxyProfile::onNewRfcommSocket, this,
+                    &HFPProxyService::newRfcommSocket);
         }
 
         void HFPProxyService::stop() {
@@ -24,6 +27,14 @@ namespace aawireless {
         }
 
         void HFPProxyService::connectToDevice(QString address) {
+            QBluetoothSocket socket;
+            socket.connectToService(
+                    QBluetoothAddress(address),
+                    QBluetoothUuid(QBluetoothUuid::ServiceClassUuid::Handsfree)
+            );
+        }
+
+        void HFPProxyService::newRfcommSocket(QSharedPointer<QLocalSocket> socket) {
 
         }
 

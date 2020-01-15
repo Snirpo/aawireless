@@ -29,6 +29,8 @@ namespace aawireless {
         private:
             std::shared_ptr<BluezQt::Manager> btManager;
             std::shared_ptr<HFPProxyProfile> hfpProxyProfile;
+
+            void newRfcommSocket(QSharedPointer<QLocalSocket> socket);
         };
     }
 }
