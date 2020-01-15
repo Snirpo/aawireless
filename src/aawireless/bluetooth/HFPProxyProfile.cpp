@@ -144,6 +144,7 @@ int HFPProxyProfile::createSCOSocket(QString srcAddress) {
         return -1;
     }
 
+    AW_LOG(info) << "Creating SCO socket on " << srcAddress.toStdString();
     const char* src_addr = srcAddress.toLocal8Bit().data();
     bdaddr_t src;
 

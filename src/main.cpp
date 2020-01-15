@@ -35,10 +35,7 @@ void startUSBWorkers(boost::asio::io_service &ioService, libusb_context *usbCont
         }
     };
 
-    threadPool.emplace_back(usbWorker);
-    threadPool.emplace_back(usbWorker);
-    threadPool.emplace_back(usbWorker);
-    threadPool.emplace_back(usbWorker);
+    threadPool.emplace_back(std::thread(usbWorker));
 }
 
 void startIOServiceWorkers(boost::asio::io_service &ioService, ThreadPool &threadPool) {
@@ -46,10 +43,7 @@ void startIOServiceWorkers(boost::asio::io_service &ioService, ThreadPool &threa
         ioService.run();
     };
 
-    threadPool.emplace_back(ioServiceWorker);
-    threadPool.emplace_back(ioServiceWorker);
-    threadPool.emplace_back(ioServiceWorker);
-    threadPool.emplace_back(ioServiceWorker);
+    threadPool.emplace_back(std::thread(ioServiceWorker));
 }
 
 //TODO: refactor to other location
