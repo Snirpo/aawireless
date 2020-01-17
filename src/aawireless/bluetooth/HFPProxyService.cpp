@@ -35,7 +35,6 @@ namespace aawireless {
         }
 
         void HFPProxyService::newRfcommSocket(QSharedPointer<QLocalSocket> socket) {
-
         }
 
         void HFPProxyService::onProfileReady(BluezQt::PendingCall *call) {
