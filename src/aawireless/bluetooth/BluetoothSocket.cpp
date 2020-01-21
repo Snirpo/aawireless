@@ -9,67 +9,44 @@
 #include <QtCore/QSocketNotifier>
 #include <qplatformdefs.h>
 #include <bluetooth/bluetooth.h>
+#include <bluetooth/rfcomm.h>
 #include <aawireless/log/Log.h>
 
 namespace aawireless {
     namespace bluetooth {
-        BluetoothSocket::BluetoothSocket() {
-            secFlags = Authorization;
 
+        BluetoothSocket::BluetoothSocket() {
             readNotifier = std::make_unique<QSocketNotifier>(socket, QSocketNotifier::Read);
             connect(readNotifier.get(), SIGNAL(activated(int)), this, SLOT(readNotify()));
             connectWriteNotifier = std::make_unique<QSocketNotifier>(socket, QSocketNotifier::Write);
             connect(connectWriteNotifier.get(), SIGNAL(activated(int)), this, SLOT(writeNotify));
-
             connectWriteNotifier->setEnabled(false);
             readNotifier->setEnabled(false);
         }
 
-        void BluetoothSocket::connectToAddres(const QString &address, quint16 port) {
+
+        //TODO: do something with security?
+        //void BluetoothSocket::connectToAddress() {
             // apply preferred security level
             // ignore QBluetooth::Authentication -> not used anymore by kernel
-            struct bt_security security;
-            memset(&security, 0, sizeof(security));
-
-            if (secFlags & Security::Authorization)
-                security.level = BT_SECURITY_LOW;
-            if (secFlags & Security::Encryption)
-                security.level = BT_SECURITY_MEDIUM;
-            if (secFlags & Security::Secure)
-                security.level = BT_SECURITY_HIGH;
-
-            if (setsockopt(socket, SOL_BLUETOOTH, BT_SECURITY,
-                           &security, sizeof(security)) != 0) {
-                AW_LOG(error) << "Cannot set connection security level, closing socket for safety"
-                              << qt_error_string(errno).toStdString();
-                socketError = UnknownSocketError;
-                return;
-            }
-
-            int result;
-            //TODO
-//            if (socketType == QBluetoothServiceInfo::RfcommProtocol) {
-//                sockaddr_rc addr;
+//            struct bt_security security;
+//            memset(&security, 0, sizeof(security));
 //
-//                memset(&addr, 0, sizeof(addr));
-//                addr.rc_family = AF_BLUETOOTH;
-//                addr.rc_channel = port;
+//            if (secFlags & Security::Authorization)
+//                security.level = BT_SECURITY_LOW;
+//            if (secFlags & Security::Encryption)
+//                security.level = BT_SECURITY_MEDIUM;
+//            if (secFlags & Security::Secure)
+//                security.level = BT_SECURITY_HIGH;
 //
-//                convertAddress(address.toUInt64(), addr.rc_bdaddr.b);
-//
-//                connectWriteNotifier->setEnabled(true);
-//                readNotifier->setEnabled(true);
-//
-//                result = ::connect(socket, (sockaddr *) &addr, sizeof(addr));
+//            if (setsockopt(socket, SOL_BLUETOOTH, BT_SECURITY,
+//                           &security, sizeof(security)) != 0) {
+//                AW_LOG(error) << "Cannot set connection security level, closing socket for safety"
+//                              << qt_error_string(errno).toStdString();
+//                socketError = UnknownSocketError;
+//                return;
 //            }
-
-            if (result >= 0 || (result == -1 && errno == EINPROGRESS)) {
-                setSocketState(ConnectingState);
-            } else {
-                AW_LOG(error) << "Could not open socket " << qt_error_string(errno).toStdString();
-                setSocketError(UnknownSocketError);
-            }
-        }
+      //  }
 
         void BluetoothSocket::writeNotify() {
             if (state == ConnectingState) {
@@ -226,6 +203,57 @@ namespace aawireless {
                 if (readNotifier) {
                     readNotifier->setEnabled(false);
                 }
+            }
+        }
+
+        void inline BluetoothSocket::convertAddress(std::string address, bdaddr_t out) {
+            const char *src_addr = address.c_str();
+
+            /* don't use ba2str to avoid -lbluetooth */
+            for (int i = 5; i >= 0; i--, src_addr += 3)
+                out.b[i] = strtol(src_addr, NULL, 16);
+        }
+
+        void BluetoothSocket::connectRfcomm(std::string address, uint8_t channel) {
+            struct sockaddr_rc addr;
+            memset(&addr, 0, sizeof(addr));
+            addr.rc_family = AF_BLUETOOTH;
+            addr.rc_channel = channel;
+            convertAddress(address, addr.rc_bdaddr);
+
+            socket = ::socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);
+
+            connectWriteNotifier->setEnabled(true);
+            readNotifier->setEnabled(true);
+
+            int result = ::connect(socket, (sockaddr *)&addr, sizeof(addr));
+
+            if (result >= 0 || (result == -1 && errno == EINPROGRESS)) {
+                setSocketState(ConnectingState);
+            } else {
+                AW_LOG(error) << "Could not open socket " << qt_error_string(errno).toStdString();
+                setSocketError(UnknownSocketError);
+            }
+        }
+
+        void BluetoothSocket::connectSCO(std::string address) {
+            struct sockaddr_sco addr;
+            memset(&addr, 0, sizeof(addr));
+            addr.sco_family = AF_BLUETOOTH;
+            convertAddress(address, addr.sco_bdaddr);
+
+            socket = ::socket(AF_BLUETOOTH, SOCK_SEQPACKET, BTPROTO_SCO);
+
+            connectWriteNotifier->setEnabled(true);
+            readNotifier->setEnabled(true);
+
+            int result = ::connect(socket, (sockaddr *)&addr, sizeof(addr));
+
+            if (result >= 0 || (result == -1 && errno == EINPROGRESS)) {
+                setSocketState(ConnectingState);
+            } else {
+                AW_LOG(error) << "Could not open socket " << qt_error_string(errno).toStdString();
+                setSocketError(UnknownSocketError);
             }
         }
     }

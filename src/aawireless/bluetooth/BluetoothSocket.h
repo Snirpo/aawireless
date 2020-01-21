@@ -8,6 +8,10 @@
 #include <QtNetwork/QAbstractSocket>
 #include <QtCore/QSocketNotifier>
 #include <boost/shared_ptr.hpp>
+#include <bluetooth/bluetooth.h>
+#include <bluetooth/rfcomm.h>
+#include <bluetooth/sco.h>
+
 #ifndef QPRIVATELINEARBUFFER_BUFFERSIZE
 #define QPRIVATELINEARBUFFER_BUFFERSIZE Q_INT64_C(16384)
 #endif
@@ -51,6 +55,9 @@ namespace aawireless {
 
             BluetoothSocket();
 
+            void connectRfcomm(std::string address, uint8_t channel);
+            void connectSCO(std::string address);
+
             signals:
             void connected();
             void disconnected();
@@ -61,7 +68,7 @@ namespace aawireless {
         private:
             QPrivateLinearBuffer buffer;
             QPrivateLinearBuffer txBuffer;
-            Security secFlags;
+            Security secFlags = Authorization;
             int socket;
             SocketError socketError = NoSocketError;
             SocketState state = UnconnectedState;
@@ -84,7 +91,7 @@ namespace aawireless {
 
             void writeNotify();
 
-            void connectToAddres(const QString &address, quint16 port);
+            static void inline convertAddress(std::string address, bdaddr_t out);
         };
     }
 }

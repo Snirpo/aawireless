@@ -9,6 +9,7 @@
 #include <BluezQt/BluezQt/Manager>
 #include <boost/shared_ptr.hpp>
 #include "HFPProxyProfile.h"
+#include <QLocalSocket>
 
 namespace aawireless {
     namespace bluetooth {
